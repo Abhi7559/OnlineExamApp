@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Webcam Proctored Coding Test</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Segoe UI", Roboto, system-ui, -apple-system, sans-serif;
+        background-color: #f4f6fb;
+        color: #1f2430;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: linear-gradient(180deg, #eff3ff, #ffffff);
+        min-height: 100vh;
+      }
+
+      .app { max-width: 1100px; margin: 0 auto; padding: 32px 24px 48px; }
+
+      header { text-align: center; margin-bottom: 24px; }
+
+      header h1 { margin: 0; font-size: 2rem; }
+
+      header p { margin: 8px 0 0; color: #4e5a73; }
+
+      .workspace-grid { display: grid; grid-template-columns: minmax(280px,320px) 1fr; gap: 24px; }
+
+      .panel {
+        border-radius: 16px;
+        padding: 20px;
+        background: rgba(255,255,255,0.92);
+        box-shadow: 0 12px 35px rgba(15,23,42,0.08);
+        border: 1px solid rgba(15,23,42,0.08);
+      }
+
+      .proctor-panel {
+        display:flex;flex-direction:column;gap:16px;align-self:flex-start;position:sticky;top:24px;
+      }
+
+      .proctor-panel video {
+        width:100%;min-height:200px;border-radius:14px;border:3px solid #4c7af3;background:#000;object-fit:cover;
+      }
+
+      .status {
+        padding:12px 14px;border-radius:12px;font-size:0.9rem;display:flex;gap:8px;align-items:center;
+        background:#f1f5ff;color:#1a2a6b;
+      }
+
+      .status span {
+        width:10px;height:10px;border-radius:50%;background:#30c95c;display:inline-flex;
+        box-shadow:0 0 6px rgba(48,201,92,0.8);
+      }
+
+      .editor-panel { display:flex;flex-direction:column;gap:16px; }
+
+      .question-nav { display:flex;gap:12px;margin-top:8px; }
+
+      .question-nav button {
+        flex:1;border-radius:10px;border:1px solid rgba(15,23,42,0.15);padding:10px 16px;
+        font-weight:600;background:#ffffff;cursor:pointer;
+      }
+
+      .question-nav button:disabled { opacity:0.4;cursor:not-allowed; }
+
+      textarea {
+        min-height:240px;width:100%;border-radius:14px;padding:14px 16px;
+        border:1px solid rgba(15,23,42,0.15);resize:vertical;
+        font-family:"Fira Code","Consolas",monospace;font-size:0.95rem;line-height:1.45;
+        background:#0d1117;color:#e2e8f0;
+      }
+
+      .controls { display:flex;flex-wrap:wrap;gap:12px; }
+
+      .controls button {
+        flex:1;min-width:160px;padding:12px 18px;border-radius:12px;border:none;
+        font-size:1rem;font-weight:600;cursor:pointer;transition:transform 0.1s ease,opacity 0.1s ease;
+      }
+
+      .controls button:active { transform:scale(0.98); }
+
+      #runBtn,#prevBtn,#nextBtn {
+        background:#4c7af3;color:#fff;box-shadow:0 10px 18px rgba(76,122,243,0.28);
+      }
+
+      #submitBtn {
+        background:#fdbd4f;color:#1f2430;box-shadow:0 10px 18px rgba(253,189,79,0.32);
+      }
+
+      .question-card {
+        border-radius:14px;padding:18px;background:#f8faff;
+        border:1px solid rgba(76,122,243,0.18);
+      }
+
+      .question-card h3 { margin:0 0 8px; }
+
+      .difficulty {
+        display:inline-flex;padding:4px 10px;border-radius:999px;font-size:0.8rem;font-weight:600;
+        margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;
+      }
+
+      .difficulty.easy{background:rgba(48,201,92,0.15);color:#23863f;}
+
+      .difficulty.medium{background:rgba(253,189,79,0.2);color:#c47906;}
+
+      .difficulty.hard{background:rgba(255,77,90,0.18);color:#a31623;}
+
+      .output-panel iframe {
+        width:100%;min-height:200px;border-radius:12px;border:1px solid rgba(15,23,42,0.15);background:#fff;
+      }
+
+      .submission-log {
+        font-size:0.9rem;background:#fff7eb;border-radius:12px;padding:14px;
+        border:1px solid rgba(253,189,79,0.3);
+      }
+
+      .submission-log p { margin:0; }
+
+      .final-submit-section {
+        margin-top:24px;padding:24px;border-radius:14px;background:#fff7eb;
+        border:2px solid rgba(253,189,79,0.4);text-align:center;
+      }
+
+      .final-submit-btn {
+        width:100%;max-width:400px;padding:16px 24px;border-radius:12px;border:none;font-size:1.1rem;
+        font-weight:700;cursor:pointer;transition:transform 0.1s ease,opacity 0.1s ease;
+        background:linear-gradient(135deg,#4c7af3,#6b8fff);color:#fff;
+        box-shadow:0 12px 24px rgba(76,122,243,0.4);
+      }
+
+      .final-submit-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 14px 28px rgba(76,122,243,0.5);}
+
+      .final-submit-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+      .final-submit-info { margin-top:12px;color:#4e5a73;font-size:0.9rem; }
+
+      .start-overlay {
+        position:fixed;inset:0;background:rgba(7,11,25,0.92);
+        display:flex;align-items:center;justify-content:center;z-index:999;padding:16px;
+      }
+
+      .start-card {
+        background:#fff;border-radius:16px;max-width:420px;width:100%;padding:32px;
+        text-align:center;box-shadow:0 18px 40px rgba(15,23,42,0.35);
+      }
+
+      .start-card h2{margin:0 0 8px;font-size:1.75rem;}
+
+      .start-card p{margin:0 0 24px;color:#4e5a73;}
+
+      .start-card button{
+        width:100%;border:none;border-radius:12px;padding:14px 20px;font-size:1rem;font-weight:600;
+        background:#4c7af3;color:#ffffff;cursor:pointer;
+      }
+
+      .start-card small{display:block;margin-top:12px;color:#6c7695;}
+
+      @media (max-width:900px){
+        .workspace-grid{grid-template-columns:1fr;}
+        .proctor-panel{position:static;}
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Candidate Info Overlay -->
+    <div class="start-overlay" id="infoOverlay" style="z-index:1000; background:rgba(7,11,25,0.94);">
+      <div class="start-card">
+        <h2>Candidate Information</h2>
+        <p>Enter your details before starting.</p>
+        <form id="candidateForm">
+          <input type="text" id="fullName" placeholder="Full Name" required
+                 style="width:100%;padding:12px;border-radius:8px;border:1px solid #ccc;margin-bottom:12px;" />
+          <input type="email" id="emailAddress" placeholder="Email Address" required
+                 style="width:100%;padding:12px;border-radius:8px;border:1px solid #ccc;margin-bottom:20px;" />
+          <button type="submit"
+                  style="width:100%;padding:14px;border:none;border-radius:10px;background:#4c7af3;color:#fff;font-weight:600;">
+            Save & Continue
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Fullscreen start overlay -->
+    <div class="start-overlay" id="startOverlay" style="display:none;">
+      <div class="start-card">
+        <h2>Start Proctored Test</h2>
+        <p>Enter fullscreen to begin your webcam‑monitored assessment.</p>
+        <button id="startTestBtn">Enter Fullscreen & Begin</button>
+        <small>Allow webcam access when prompted.</small>
+      </div>
+    </div>
+
+    <!-- Main app -->
+    <div class="app">
+      <header>
+        <h1>Webcam‑Proctored Coding Challenge</h1>
+        <p>Answer all five Java programming questions with test cases.</p>
+      </header>
+      <section class="workspace-grid">
+        <aside class="panel proctor-panel">
+          <h2>Live Proctor Feed</h2>
+          <video id="webcam" autoplay playsinline muted></video>
+          <div class="status" id="proctorStatus"><span></span>Webcam monitoring active</div>
+          <small>Ensure your face stays within the frame during the entire attempt.</small>
+        </aside>
+
+        <main class="panel editor-panel">
+          <div class="question-nav">
+            <button id="prevBtn">Previous</button>
+            <button id="nextBtn">Next</button>
+          </div>
+
+          <textarea id="codeEditor" spellcheck="false"
+            placeholder="// Write your Java solution here..."></textarea>
+
+          <div class="controls">
+            <button id="runBtn">Run Code</button>
+            <button id="submitBtn">Submit Code</button>
+          </div>
+
+          <article class="question-card" id="questionCard">
+            <div class="difficulty easy">Easy</div>
+            <h3>Question Title</h3>
+            <p>Question description will appear here.</p>
+            <ul></ul>
+          </article>
+
+          <section class="panel output-panel">
+            <h3>Automated Test Runner</h3>
+            <iframe id="resultFrame"></iframe>
+          </section>
+
+          <section class="submission-log" id="submissionLog"><p>No submissions yet.</p></section>
+
+          <div class="final-submit-section">
+            <button id="finalSubmitBtn" class="final-submit-btn">Final Submit Test</button>
+            <p class="final-submit-info">Submit all your answers to complete the test.</p>
+          </div>
+        </main>
+      </section>
+    </div>
+
+    <script>
+      const testRunners = {
+        twoSum(code) {
+          const results = [];
+          const testCases = [
+            { nums: [2, 7, 11, 15], target: 9, expected: [0, 1], description: "nums = [2,7,11,15], target = 9" },
+            { nums: [3, 2, 4], target: 6, expected: [1, 2], description: "nums = [3,2,4], target = 6" },
+            { nums: [3, 3], target: 6, expected: [0, 1], description: "nums = [3,3], target = 6" },
+            { nums: [-1, -2, -3, -4, -5], target: -8, expected: [2, 4], description: "Negative numbers" },
+            { nums: [1, 5, 3, 7], target: 8, expected: [0, 3], description: "nums = [1,5,3,7], target = 8" }
+          ];
+          
+          const compiled = compileUserCode(code, "twoSum");
+          if (compiled.error) {
+            results.push(createResult("Code compilation", false, compiled.error.message));
+            return results;
+          }
+          
+          const fn = compiled.function;
+          
+          testCases.forEach((t, i) => {
+            try {
+              const out = fn(t.nums, t.target);
+              const arr = Array.isArray(out) ? [...out] : (out !== null && out !== undefined && out.length !== undefined ? Array.from(out) : [out]);
+              
+              if (!Array.isArray(arr) || arr.length !== 2) {
+                results.push(createResult(`Test ${i + 1}: ${t.description}`, false, `Expected array with 2 elements, got: [${arr.join(", ")}]`));
+                return;
+              }
+              
+              const sumMatches = t.nums[arr[0]] + t.nums[arr[1]] === t.target;
+              const indicesMatch = (arr[0] === t.expected[0] && arr[1] === t.expected[1]) || (arr[0] === t.expected[1] && arr[1] === t.expected[0]);
+              const passed = sumMatches && indicesMatch;
+              
+              results.push(createResult(`Test ${i + 1}: ${t.description}`, passed,
+                passed ? `✓ [${arr.join(", ")}] matches expected [${t.expected.join(", ")}]` : `Expected [${t.expected.join(", ")}], got [${arr.join(", ")}]${!sumMatches ? ' (sum does not match)' : ''}`));
+            } catch (e) {
+              results.push(createResult(`Test ${i + 1}: ${t.description}`, false, `Runtime error: ${e.message}`));
+            }
+          });
+          return results;
+        },
+        
+        reverseString(code) {
+          const results = [];
+          const testCases = [
+            { input: "hello", expected: "olleh", description: "reverseString(\"hello\")" },
+            { input: "racecar", expected: "racecar", description: "reverseString(\"racecar\")" },
+            { input: "A B C", expected: "C B A", description: "reverseString(\"A B C\")" },
+            { input: "12345", expected: "54321", description: "reverseString(\"12345\")" },
+            { input: "Java", expected: "avaJ", description: "reverseString(\"Java\")" }
+          ];
+          
+          const compiled = compileUserCode(code, "reverseString");
+          if (compiled.error) {
+            results.push(createResult("Code compilation", false, compiled.error.message));
+            return results;
+          }
+          
+          const fn = compiled.function;
+          
+          testCases.forEach((t, i) => {
+            try {
+              const out = String(fn(t.input) || "");
+              const passed = out === t.expected;
+              results.push(createResult(`Test ${i + 1}: ${t.description}`, passed,
+                passed ? `✓ "${out}" matches expected "${t.expected}"` : `Expected "${t.expected}", got "${out}"`));
+            } catch (e) {
+              results.push(createResult(`Test ${i + 1}: ${t.description}`, false, `Runtime error: ${e.message}`));
+            }
+          });
+          return results;
+        },
+        
+        isPrime(code) {
+          const results = [];
+          const testCases = [
+            { input: 2, expected: true, description: "isPrime(2)" },
+            { input: 7, expected: true, description: "isPrime(7)" },
+            { input: 4, expected: false, description: "isPrime(4)" },
+            { input: 17, expected: true, description: "isPrime(17)" },
+            { input: 1, expected: false, description: "isPrime(1)" }
+          ];
+          
+          const compiled = compileUserCode(code, "isPrime");
+          if (compiled.error) {
+            results.push(createResult("Code compilation", false, compiled.error.message));
+            return results;
+          }
+          
+          const fn = compiled.function;
+          
+          testCases.forEach((t, i) => {
+            try {
+              const out = Boolean(fn(t.input));
+              const passed = out === t.expected;
+              results.push(createResult(`Test ${i + 1}: ${t.description}`, passed,
+                passed ? `✓ ${out} matches expected ${t.expected}` : `Expected ${t.expected}, got ${out}`));
+            } catch (e) {
+              results.push(createResult(`Test ${i + 1}: ${t.description}`, false, `Runtime error: ${e.message}`));
+            }
+          });
+          return results;
+        },
+        
+        subarraySum(code) {
+          const results = [];
+          const testCases = [
+            { nums: [1, 1, 1], k: 2, expected: 2, description: "nums = [1,1,1], k = 2" },
+            { nums: [1, 2, 3], k: 3, expected: 2, description: "nums = [1,2,3], k = 3" },
+            { nums: [-1, -1, 1], k: 0, expected: 1, description: "nums = [-1,-1,1], k = 0" },
+            { nums: [1], k: 1, expected: 1, description: "nums = [1], k = 1" },
+            { nums: [1, -1, 0], k: 0, expected: 3, description: "nums = [1,-1,0], k = 0" }
+          ];
+          
+          const compiled = compileUserCode(code, "subarraySum");
+          if (compiled.error) {
+            results.push(createResult("Code compilation", false, compiled.error.message));
+            return results;
+          }
+          
+          const fn = compiled.function;
+          
+          testCases.forEach((t, i) => {
+            try {
+              const out = Number(fn(t.nums, t.k));
+              const passed = out === t.expected;
+              results.push(createResult(`Test ${i + 1}: ${t.description}`, passed,
+                passed ? `✓ ${out} matches expected ${t.expected}` : `Expected ${t.expected}, got ${out}`));
+            } catch (e) {
+              results.push(createResult(`Test ${i + 1}: ${t.description}`, false, `Runtime error: ${e.message}`));
+            }
+          });
+          return results;
+        },
+        
+        removeLastDigits(code) {
+          const results = [];
+          const testCases = [
+            { input: 12345, n: 2, expected: 123, description: "removeLastDigits(12345, 2)" },
+            { input: 1000, n: 3, expected: 1, description: "removeLastDigits(1000, 3)" },
+            { input: 56789, n: 1, expected: 5678, description: "removeLastDigits(56789, 1)" },
+            { input: 42, n: 1, expected: 4, description: "removeLastDigits(42, 1)" },
+            { input: 999, n: 2, expected: 9, description: "removeLastDigits(999, 2)" }
+          ];
+          
+          const compiled = compileUserCode(code, "removeLastDigits");
+          if (compiled.error) {
+            results.push(createResult("Code compilation", false, compiled.error.message));
+            return results;
+          }
+          
+          const fn = compiled.function;
+          
+          testCases.forEach((t, i) => {
+            try {
+              const out = Number(fn(t.input, t.n));
+              const passed = out === t.expected;
+              results.push(createResult(`Test ${i + 1}: ${t.description}`, passed,
+                passed ? `✓ ${out} matches expected ${t.expected}` : `Expected ${t.expected}, got ${out}`));
+            } catch (e) {
+              results.push(createResult(`Test ${i + 1}: ${t.description}`, false, `Runtime error: ${e.message}`));
+            }
+          });
+          return results;
+        }
+      };
+
+      const questions = [
+        {id:1,runnerKey:"twoSum",title:"Two Sum",difficulty:"easy",
+         description:"Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.",
+         checks:["public static int[] twoSum(int[] nums,int target)","Return array of indices","Order doesn't matter"]},
+        {id:2,runnerKey:"reverseString",title:"Reverse String",difficulty:"easy",
+         description:"Write reverseString(String str) returning reversed string.",
+         checks:["public static String reverseString(String str)"]},
+        {id:3,runnerKey:"isPrime",title:"Prime Number Check",difficulty:"medium",
+         description:"Return true if number is prime.",checks:["public static boolean isPrime(int n)"]},
+        {id:4,runnerKey:"subarraySum",title:"Subarray Sum",difficulty:"medium",
+         description:"Count contiguous subarray sums equal to k.",checks:["public static int subarraySum(int[] nums,int k)"]},
+        {id:5,runnerKey:"removeLastDigits",title:"Remove Last Digits",difficulty:"easy",
+         description:"Trim last n digits from number.",checks:["public static int removeLastDigits(int num,int n)"]}
+      ];
+
+      const questionCard = document.querySelector("#questionCard"),
+            codeEditor = document.querySelector("#codeEditor"),
+            resultFrame = document.querySelector("#resultFrame"),
+            submissionLog = document.querySelector("#submissionLog"),
+            prevBtn = document.querySelector("#prevBtn"),
+            nextBtn = document.querySelector("#nextBtn"),
+            submitBtn = document.querySelector("#submitBtn"),
+            finalSubmitBtn = document.querySelector("#finalSubmitBtn"),
+            startOverlay = document.querySelector("#startOverlay"),
+            startTestBtn = document.querySelector("#startTestBtn");
+
+      let currentQuestionIndex = 0;
+      const allAnswers = {};
+
+      function createResult(d, p, det = "") {
+        return { description: d, passed: p, details: det };
+      }
+
+      function extractAndConvertJavaMethod(javaCode, methodName) {
+        const sigPattern = new RegExp(`public\\s+(?:static\\s+)?([\\w\\[\\]]+)\\s+${methodName}\\s*\\(([^)]*)\\)`, "m");
+        const sigMatch = javaCode.match(sigPattern);
+        if (!sigMatch) {
+          throw new Error(`Method ${methodName} not found. Make sure method is defined as: public [static] ... ${methodName}(...)`);
+        }
+        
+        const params = sigMatch[2] ? sigMatch[2].split(',').map(p => {
+          p = p.trim();
+          if (!p) return '';
+          const parts = p.split(/\s+/);
+          return parts[parts.length - 1];
+        }).filter(p => p).join(', ') : '';
+        
+        const methodStart = javaCode.indexOf(methodName + '(');
+        if (methodStart === -1) throw new Error(`Method ${methodName} not found.`);
+        
+        let braceStart = javaCode.indexOf('{', methodStart);
+        if (braceStart === -1) throw new Error(`Method ${methodName} body not found.`);
+        
+        let braceCount = 0;
+        let methodEnd = -1;
+        let inString = false;
+        let stringChar = '';
+        
+        for (let i = braceStart; i < javaCode.length; i++) {
+          const char = javaCode[i];
+          const prevChar = i > 0 ? javaCode[i - 1] : '';
+          
+          if ((char === '"' || char === "'") && prevChar !== '\\') {
+            if (!inString) {
+              inString = true;
+              stringChar = char;
+            } else if (char === stringChar) {
+              inString = false;
+            }
+            continue;
+          }
+          
+          if (inString) continue;
+          
+          if (char === '{') {
+            braceCount++;
+          } else if (char === '}') {
+            braceCount--;
+            if (braceCount === 0) {
+              methodEnd = i;
+              break;
+            }
+          }
+        }
+        
+        if (methodEnd === -1) throw new Error(`Method ${methodName} body not properly closed.`);
+        
+        let methodBody = javaCode.substring(braceStart + 1, methodEnd).trim();
+        
+        let jsBody = methodBody
+          .replace(/new\s+int\s*\[\s*\]\s*\{([^}]*)\}/g, '[$1]')
+          .replace(/\bint\[\]\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'let $1 =')
+          .replace(/\bint\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'let $1 =')
+          .replace(/\bString\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'let $1 =')
+          .replace(/\bboolean\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'let $1 =')
+          .replace(/\bchar\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=/g, 'let $1 =')
+          .replace(/\.length\(\)/g, '.length')
+          .replace(/\.charAt\(/g, '.charAt(')
+          .replace(/\.substring\(/g, '.substring(')
+          .replace(/\.toString\(\)/g, '')
+          .replace(/new\s+StringBuilder\s*\(/g, '')
+          .replace(/\.append\s*\(/g, '+')
+          .replace(/new\s+int\s*\[\s*\]/g, '[]')
+          .replace(/new\s+int\s*\[([^\]]+)\]/g, 'new Array($1)')
+          .replace(/\b==\b(?![=])/g, '===')
+          .replace(/\b!=\b(?![=])/g, '!==')
+          .replace(/for\s*\(\s*int\s+(\w+)\s*=\s*([^;]+);\s*([^;]+);\s*([^)]+)\s*\)/g, 'for (let $1 = $2; $3; $4)')
+          .replace(/while\s*\(\s*int\s+/g, 'while (let ')
+          .replace(/\bMath\./g, 'Math.')
+          .replace(/\breturn\s+/g, 'return ');
+        
+        return {
+          functionText: `function ${methodName}(${params}) {\n${jsBody}\n}`,
+          params: params
+        };
+      }
+
+      function compileUserCode(code, methodName) {
+        try {
+          if (!code || code.trim().length === 0) {
+            return { error: new Error("Please write your Java code in the editor.") };
+          }
+          
+          if (!code.includes(methodName) || !code.includes("public")) {
+            return { error: new Error(`Method ${methodName} not found. Define public [static] ${methodName} method.`) };
+          }
+          
+          let functionText;
+          try {
+            const result = extractAndConvertJavaMethod(code, methodName);
+            functionText = result.functionText;
+          } catch (extractError) {
+            return { error: new Error(`Method extraction error: ${extractError.message}`) };
+          }
+          
+          let userFunction;
+          try {
+            const funcCode = `(function() { 
+              try {
+                ${functionText}; 
+                return ${methodName}; 
+              } catch(e) {
+                throw new Error('Function definition error: ' + e.message);
+              }
+            })()`;
+            
+            userFunction = eval(funcCode);
+            
+            if (typeof userFunction !== "function") {
+              console.log("Generated JavaScript code:", functionText);
+              return { error: new Error(`Method ${methodName} could not be converted or executed. Check your Java syntax.`) };
+            }
+          } catch (e) {
+            console.log("Generated JavaScript code:", functionText);
+            console.error("Execution error:", e);
+            return { error: new Error(`Code execution error: ${e.message}\n\nGenerated code may be invalid. Check your Java syntax.`) };
+          }
+          
+          return { function: userFunction };
+        } catch (error) {
+          return { error: new Error(`Compilation error: ${error.message}`) };
+        }
+      }
+
+      function evaluateCurrentQuestion(code) {
+        const runner = testRunners[questions[currentQuestionIndex].runnerKey];
+        const results = runner(code);
+        return { results };
+      }
+
+      function renderTestResults(results = [], error) {
+        const doc = resultFrame.contentDocument || resultFrame.contentWindow.document;
+        doc.open();
+        if (error) {
+          doc.write(`<html><body style="font-family:'Segoe UI',sans-serif;margin:0;padding:16px;background:#fff5f5;color:#b42318;"><h3>Compilation error</h3><p>${error.message || String(error)}</p></body></html>`);
+          doc.close();
+          return;
+        }
+        const passed = results.filter(r => r.passed).length;
+        const total = results.length;
+        const summaryColor = passed === total ? "#1f9254" : "#b42318";
+
+        doc.write(`<html><body style="font-family:'Segoe UI',sans-serif;margin:0;padding:16px;background:#ffffff;"><h3 style="margin-top:0;">Automated Test Results</h3><p style="font-weight:600;color:${summaryColor};">${passed} / ${total} tests passed</p><ul style="list-style:none;padding-left:0;">${results.map(r => `<li style="margin-bottom:12px;padding:12px;border-radius:10px;background:${r.passed?"#ecfdf3":"#fff5f5"};border:1px solid ${r.passed?"rgba(31,146,84,0.3)":"rgba(180,35,24,0.3)"};"><strong style="color:${r.passed?"#1f9254":"#b42318"};">${r.passed?"✔":"✖"} ${r.description}</strong><p style="margin:6px 0 0;color:#4e5a73;">${r.details}</p></li>`).join("")}</ul></body></html>`);
+        doc.close();
+      }
+
+      function renderQuestion(index) {
+        const q = questions[index];
+        questionCard.querySelector("h3").textContent = q.title;
+        questionCard.querySelector("p").textContent = q.description;
+        const diff = questionCard.querySelector(".difficulty");
+        diff.textContent = q.difficulty;
+        diff.className = `difficulty ${q.difficulty}`;
+        const ul = questionCard.querySelector("ul");
+        ul.innerHTML = "";
+        q.checks.forEach(c => {
+          const li = document.createElement("li");
+          li.textContent = c;
+          ul.appendChild(li);
+        });
+        codeEditor.value = allAnswers[q.id]?.code || "";
+        currentQuestionIndex = index;
+        updateNavButtons();
+      }
+
+      function updateNavButtons() {
+        prevBtn.disabled = currentQuestionIndex === 0;
+        nextBtn.disabled = currentQuestionIndex === questions.length - 1;
+      }
+
+      prevBtn.onclick = () => { if (currentQuestionIndex > 0) renderQuestion(currentQuestionIndex - 1); };
+      nextBtn.onclick = () => { if (currentQuestionIndex < questions.length - 1) renderQuestion(currentQuestionIndex + 1); };
+
+      function runCode() {
+        const code = codeEditor.value;
+        const e = evaluateCurrentQuestion(code);
+        renderTestResults(e.results, e.error);
+      }
+
+      function submitCode() {
+        const code = codeEditor.value.trim();
+        if (!code) {
+          alert("Write code first");
+          return;
+        }
+        const q = questions[currentQuestionIndex];
+        const e = evaluateCurrentQuestion(code);
+        renderTestResults(e.results, e.error);
+        const pass = e.results.filter(r => r.passed).length;
+        const total = e.results.length;
+        const status = e.error ? "Compilation error ❌" : (pass === total ? "All tests passed ✅" : `${pass}/${total} tests ⚠️`);
+        allAnswers[q.id] = {
+          questionId: q.id,
+          questionTitle: q.title,
+          code: code,
+          timestamp: new Date().toLocaleTimeString(),
+          status: status,
+          testResults: e.results,
+          error: e.error || null
+        };
+        submissionLog.innerHTML = `<p><b>${q.title}</b> — ${status}</p>`;
+      }
+
+      function initProctoring() {
+        if (!navigator.mediaDevices) return;
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then(s => { document.querySelector("#webcam").srcObject = s; })
+          .catch(_ => { document.querySelector("#proctorStatus").innerHTML = "<span style='background:#ff4d5a'></span> Webcam blocked"; });
+      }
+
+      async function enterFullscreen() {
+        const e = document.documentElement;
+        if (e.requestFullscreen) await e.requestFullscreen();
+      }
+
+      startTestBtn.onclick = async () => {
+        await enterFullscreen();
+        startOverlay.style.display = "none";
+        initProctoring();
+      };
+
+      document.addEventListener("fullscreenchange", () => {
+        if (!document.fullscreenElement) startOverlay.style.display = "flex";
+      });
+
+      async function submitFinalTest() {
+        const current = questions[currentQuestionIndex];
+        const code = codeEditor.value.trim();
+        if (code) {
+          allAnswers[current.id] = {
+            ...allAnswers[current.id],
+            questionId: current.id,
+            questionTitle: current.title,
+            code: code
+          };
+        }
+        const submissionData = {
+          timestamp: new Date().toISOString(),
+          testName: "Java Coding Test",
+          candidate: {
+            name: localStorage.getItem("candidateName") || "Unknown",
+            email: localStorage.getItem("candidateEmail") || "Unknown"
+          },
+          answers: Object.values(allAnswers)
+        };
+        if (!submissionData.answers.length) {
+          alert("Answer at least one question.");
+          return;
+        }
+        if (!confirm("Submit test now?")) return;
+        finalSubmitBtn.disabled = true;
+        finalSubmitBtn.textContent = "Submitting...";
+        try {
+          const res = await fetch("http://localhost:8080/api/submit-test", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(submissionData)
+          });
+          if (!res.ok) throw new Error("Server " + res.status);
+          alert("Submitted successfully! You'll get an email soon.");
+          finalSubmitBtn.textContent = "Test Submitted ✓";
+          finalSubmitBtn.style.background = "linear-gradient(135deg,#1f9254,#30c95c)";
+        } catch (e) {
+          alert("Error submitting: " + e.message);
+          finalSubmitBtn.disabled = false;
+          finalSubmitBtn.textContent = "Final Submit Test";
+        }
+      }
+
+      document.querySelector("#runBtn").onclick = runCode;
+      document.querySelector("#submitBtn").onclick = submitCode;
+      finalSubmitBtn.onclick = submitFinalTest;
+
+      const infoOverlay = document.getElementById("infoOverlay");
+      const candidateForm = document.getElementById("candidateForm");
+      candidateForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = document.getElementById("fullName").value.trim();
+        const email = document.getElementById("emailAddress").value.trim();
+        if (!name || !email) {
+          alert("Please enter both name and email.");
+          return;
+        }
+        localStorage.setItem("candidateName", name);
+        localStorage.setItem("candidateEmail", email);
+        infoOverlay.style.display = "none";
+        document.getElementById("startOverlay").style.display = "flex";
+      });
+
+      renderQuestion(0);
+      initProctoring();
+    </script>
+  </body>
+</html>
